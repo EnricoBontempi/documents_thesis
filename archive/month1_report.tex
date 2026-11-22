@@ -305,9 +305,9 @@ Rather than introducing ad-hoc architectural complexity all at once, we propose 
     \item \textbf{Testable hypothesis \& trade-offs:} Tests a clear, falsifiable hypothesis: whether conditioning the assimilation basis on the instantaneous sparse velocity field enables small thermocouple counts ($K = 4\text{--}9$) to correct flame-front position and shape where static POD bases fail. Because training low-rank covariance heads requires a proper Gaussian log-likelihood objective rather than simple MSE, we treat this as the targeted Month~3 investigation once Steps~0--2 are benchmarked.
 \end{itemize}
 
-\section{Questions for Supervisor Sign-Off}
+\section{Questions:}
 
-Before launching the Month~2 training runs, we would appreciate your feedback on the following points:
+Before launching the Month~2 training runs, I would appreciate your feedback on the following points:
 \begin{enumerate}
     \item \textbf{Operating-Condition Split \& Evaluation Metrics:} Do you approve the locked 30-condition split (\texttt{20 train}, \texttt{3 val}, \texttt{3 test\_interp}, \texttt{4 test\_extrap}) and the decomposed evaluation metrics ($\text{RMSE} \rightarrow \text{Bias} + \text{Centered-RMSE}$, alongside regional Jet/Front and Hot-Core errors, supplemented by Leave-One-Condition-Out validation on training-hull boundary conditions)?
     \item \textbf{Default Velocity Modality (2C vs.\ 3C) \& Inflow Metadata:} Since 2-component in-plane velocity $(v_i, v_j)$ matches standard planar PIV and performs within $\le 4\text{ K}$ of 3-component velocity on all baselines, should we lock 2-component $(v_i, v_j)$ as our primary setup (with 3C Stereo-PIV as an ablation)? Also, are the per-condition reactant mass-flow rates or thermal powers available to include alongside $(\text{NH}_3\%, \phi)$, and should we clip the rare grid-interpolation temperature outliers ($T < 250\text{ K}$ or $T > 2600\text{ K}$) in Ch~10?
