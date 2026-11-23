@@ -49,7 +49,7 @@ M.Sc.\ Thesis Project --- Deng Energy and Nanotechnology Group, MIT}
 
 \begin{abstract}
 \noindent
-This report describes the Month~2 experiments on reconstructing an instantaneous $128\times128$ temperature field of a turbulent $\NH/\text{CH}_4$/air flame from sparse observations of planar velocity. We studied three questions in sequence. (1)~Without any temperature measurement, how well do a masked U-Net and an adapted GLU reconstruct the field from 5\% of the velocity vectors, with and without the operating parameters $\mathbf{p}=(\NH\%,\phi)$, and how much does the amount of training data matter? (2)~If a few ideal point temperatures become available at inference, how much can they correct a frozen temperature-free prediction? (3)~Does a network that receives those temperatures directly as input do better than such a post hoc correction? Both neural families have 1.6 to 2.5 times lower error than the best linear baseline (GappyPOD). The U-Net has the lower structural error and the GLU the more accurate thermal level. A median offset computed from four or more temperature sites removes most of the remaining level error but leaves the spatial structure unchanged, and the temperature-input training gives a measurable benefit in only one of four configurations. All evidence comes from three validation conditions that were also used for model selection. The report closes with three possible directions for Month~3, presented for discussion.
+This report describes the Month~2 experiments on reconstructing an instantaneous $128\times128$ temperature field of a turbulent $\NH/\text{CH}_4$/air flame from sparse observations of planar velocity. We studied three questions in sequence. (1)~Without any temperature measurement, how well do a masked U-Net and an adapted GLU reconstruct the field from 5\% of the velocity vectors, with and without the operating parameters $\mathbf{p}=(\NH\%,\phi)$ as additional inputs (ammonia percentage in the fuel blend and equivalence ratio), and how much does the amount of training data matter? (2)~If a few ideal point temperatures become available at inference, how much can they correct a frozen temperature-free prediction? (3)~Does a network that receives those temperatures directly as input do better than such a post hoc correction? Both neural families have 1.6 to 2.5 times lower error than the best linear baseline (GappyPOD). The U-Net has the lower structural error and the GLU the more accurate thermal level. A median offset computed from four or more temperature sites removes most of the remaining level error but leaves the spatial structure unchanged, and the temperature-input training gives a measurable benefit in only one of four configurations. All evidence comes from three validation conditions that were also used for model selection. The report closes with three possible directions for Month~3, presented for discussion.
 \end{abstract}
 
 \clearpage
@@ -61,6 +61,8 @@ This report describes the Month~2 experiments on reconstructing an instantaneous
 \label{sec:summary}
 
 \textbf{Question.} The thesis asks how accurately an instantaneous temperature field can be reconstructed from incomplete observations of other variables, and how this changes for operating conditions excluded from training. Month~1 established the data split, the error decomposition $\text{RMSE}^2=\text{bias}^2+\text{centered RMSE}^2$ (per frame) and linear baselines. Month~2 trained the first neural reconstructors and examined what limits them: the spatial \emph{structure} of the flame (jets, shear layers) or the overall thermal \emph{level}, and whether a few temperature measurements can fix either.
+
+\textbf{Input convention.} Throughout this report, $\mathbf{p}=(\NH\%,\phi)$ denotes the ammonia percentage in the fuel blend and the equivalence ratio. The labels \texttt{p\_on} (\pon) and \texttt{p\_off} (\poff) mean that \emph{both} operating parameters are supplied as model inputs or excluded from the inputs, respectively. They do not indicate whether temperature observations are available; that is specified separately by $K$.
 
 \textbf{What we did.} We ran three experiments on the same data and observation protocol (Section~\ref{sec:protocol}). We first studied training-data quantity (19, 38 and 149 snapshots per training condition). We then compared a masked U-Net and an adapted GLU, each with and without $\mathbf{p}$, over three training seeds, with no temperature input. Next, we corrected the frozen predictions with $K\in\{0,1,4,9,16,32\}$ ideal temperature sites. Finally, we trained twelve new networks that receive those $K$ temperatures and their positions as input.
 
@@ -399,10 +401,10 @@ The plan foresaw a simple spatial interpolation of the residuals (kernel or RBF 
 \textbf{Cost.} Table~\ref{tab:costs} lists measured compute and queue times. In the temperature-free campaign, training took $3.7$--$4.2$\,h per U-Net run and $5.5$--$7.8$\,h per GLU run. The temperature-input campaign was faster: $0.6$--$0.8$\,h for the U-Net and $2.4$--$3.4$\,h for the GLU. The two campaigns differ in implementation and in compute partition, so these numbers do not define a fixed cost ratio between the families.
 
 %======================================================================
-\section{Possible directions for Month 3}
+\section{Proposed next steps and connection to realistic applications}
 \label{sec:month3}
 
-Month~2 leaves two clearly separated problems: the structural error in the jets and a level error whose generality is unknown. It also leaves an open question about how few temperatures can best be used. We see three directions. They are presented for discussion, and none has been chosen. In all three, the reference is the frozen U-Net \pon\ described above, so that any change can be attributed to one modification.
+Month~2 leaves two clearly separated problems: the structural error in the jets and a level error whose generality is unknown. It also leaves an open question about how few temperatures can best be used. I propose to use the U-Net \pon\ as the working reference and to investigate the following three directions within a bounded program. The residual-assimilation study keeps the backbone frozen; the jet-loss and condition-fold studies require retraining controlled variants. The aim is to identify which improvements survive changes in conditions and observations, while defining a concrete application with domain-expert input. The final scope of that application is still being developed.
 
 \subsection*{A. Better reconstruction of the jets without temperature}
 \begin{itemize}
@@ -421,7 +423,7 @@ Month~2 leaves two clearly separated problems: the structural error in the jets 
     \item leave-condition-out folds within the TRAIN conditions, which require retraining with fold-specific normalisation and priors. Two geometrically extrapolative candidates were identified, \cond{40}{0.85} and \cond{80}{1.20}, but are not fixed.
     \item a separately agreed evaluation on data that has not been used for selection.
   \end{itemize}
-  The choice between these, and any use of TEST data, is for the supervisors to decide.
+  I will define the evaluation design before running it, taking account of which conditions have already informed development. Any use of TEST data will be documented separately rather than treated as an untouched confirmation by default.
   \item \textbf{Expected benefit.} It distinguishes a systematic problem from a few VAL cases, and it reduces the risk of further optimizing the method on the three VAL conditions already used.
   \item \textbf{Cost and limits.} Folds require training, and the independence of each evaluation set must be defined precisely given the history of the data. A single biased case would not establish a general law. Conversely, if the bias proves unpredictable, this would not prove that thermal measurements are indispensable.
 \end{itemize}
@@ -437,25 +439,26 @@ Month~2 leaves two clearly separated problems: the structural error in the jets 
 
 \subsection*{How the directions relate, and a possible ordered program}
 
-The three directions are not mutually exclusive. A generalization check (B) is also the natural way to evaluate the two methodological changes (A and C), because it tests them on conditions that played no role in their design. Training is relatively fast: a U-Net run took about 4\,h in the temperature-free campaign and under 1\,h in the temperature-input campaign, and the campaigns ran up to four jobs concurrently. It would therefore be feasible to address all three directions in one bounded program rather than choosing only one. We present this as a concrete possibility to discuss, not as a commitment.
+The three directions are not mutually exclusive. A generalization check (B) is also the natural way to evaluate the two methodological changes (A and C), because it tests them on conditions that played no role in their design. Training is relatively fast: a U-Net run took about 4\,h in the temperature-free campaign and under 1\,h in the temperature-input campaign, and the campaigns ran up to four jobs concurrently. It would therefore be feasible to address all three directions in one bounded program rather than choosing only one. I therefore see scope to pursue all three through a small, ordered set of experiments while the application requirements are being clarified, rather than committing immediately to a large campaign.
 
-Computation is not the main constraint. Analysis takes time, and every new decision made on the same three VAL conditions makes them less informative. We would therefore order the work with explicit decision points:
+Computation is not the main constraint. Analysis takes time, and every new decision made on the same three VAL conditions makes them less informative. I propose the following sequence with explicit decision points:
 \begin{enumerate}
-  \item \textbf{Freeze first.} Agree on the generalization design for B, the evaluation metrics and the success criteria for A and C, and the single loss weight for A, all before any new result is seen.
-  \item \textbf{Inexpensive steps.} Run the spatial residual baseline of C. It needs no network training but requires inference of the frozen model on training frames, whose cost has not yet been profiled. In parallel, launch the trainings of A (three seeds) and the folds of B, if approved. Their cost per run is expected to be comparable to the measured U-Net runs above, multiplied by the number of folds and seeds. \emph{Decision point:} continue C with a learned module only if the baseline shows a structural gain beyond the median, or if the comparison remains inconclusive.
+  \item \textbf{Freeze first.} Specify the generalization design for B, the evaluation metrics and the success criteria for A and C, and the single loss weight for A, all before any new result is seen.
+  \item \textbf{Inexpensive steps.} Run the spatial residual baseline of C. It needs no network training but requires inference of the frozen model on training frames, whose cost has not yet been profiled. In parallel, launch the trainings of A (three seeds) and the folds of B once their evaluation design is fixed. Their cost per run is expected to be comparable to the measured U-Net runs above, multiplied by the number of folds and seeds. \emph{Decision point:} continue C with a learned module only if the baseline shows a structural gain beyond the median, or if the comparison remains inconclusive.
   \item \textbf{Joint evaluation.} Evaluate the jet-weighted model and, if trained, the residual module under the frozen generalization protocol, against the unchanged reference. The cost of a learned residual module has not been profiled, and we do not estimate it here.
 \end{enumerate}
 
 The thesis question remains general: reconstruction of a single instantaneous field from incomplete observations, under changes in the number and position of sensors, measurement noise, physical constraints and, if possible, the dataset. Month~3 should therefore not become an optimization of the three current VAL conditions. Noise and realistic sensor layouts are natural axes for later months. Which of them are central to the thesis should be decided explicitly, not added as an open list.
 
-\subsection*{Questions for the supervisors}
-\begin{enumerate}
-  \item Should the thesis prioritize the temperature-free task (velocity only), or the assimilation of a few temperature measurements, or treat both as equal tracks?
-  \item Which evidence of generalization should come before any further methodological change: new held-out conditions (folds or a frozen evaluation on unused data), new sensor layouts, measurement noise, or another dataset? Under what conditions may the TEST conditions be used?
-  \item Among the jet-weighted loss (A), the level-generalization study (B) and the residual assimilation (C), which question would give the most coherent scientific contribution? Should we pursue them as a single ordered program as outlined above?
-  \item Which realistic sensor constraints (thermocouple noise, response time, intrusiveness, placement limits) should be introduced, and at which stage?
-  \item Is the evidence in this report sufficient to close Month~2? Is the provisional operating reference appropriate as the baseline for Month~3?
-\end{enumerate}
+\subsection*{Connecting the benchmark to a realistic measurement problem}
+
+The next stage should establish where this reconstruction framework could answer a useful experimental or engineering question. As previously discussed with my MIT supervisor, I am seeking input from my Politecnico di Milano supervisor on a concrete combustion or engine application. I plan to arrange a discussion about which quantities are genuinely inaccessible, what velocity and temperature measurements can be acquired together, and where temperature sensors can physically be placed. Suitable engine datasets or experimental measurements, if available, could provide a more relevant setting in which to test transfer beyond the present numerical benchmark. Access to such data has not yet been established.
+
+This domain input will help define meaningful sensor layouts, measurement uncertainty, response times and other physical constraints. These requirements should shape the next application rather than be added only after optimizing a method on the current VAL conditions. In the meantime, the controlled studies above can clarify the limitations of the existing reconstruction framework without depending on access to a new dataset.
+
+The current results support instantaneous reconstruction on this numerical benchmark: neural models substantially outperform the baselines, and the snapshot-swap tests show dependence on the observed instant. The remaining risk is how much of that capability transfers to realistic observations and different operating conditions. Alongside improving accuracy, I will develop a fallback contribution based on quantifying the conditions under which reconstruction is reliable, which observations are informative, and where the available measurements leave substantial ambiguity. This would require a carefully defined evaluation; the current experiments do not establish an irreducible physical limit.
+
+I welcome feedback on the physical relevance of these proposed studies and on suitable application settings. I will use that input, together with the domain-expert discussion, to refine the scope and evaluation of the next stage.
 
 %======================================================================
 \clearpage
