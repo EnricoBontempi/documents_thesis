@@ -178,7 +178,7 @@ Two observations limit this result. First, more data did not remove the cold lev
 \subsection{U-Net and GLU, with and without operating parameters}
 \label{sec:families}
 
-Table~\ref{tab:free} and Figure~\ref{fig:free} summarize the twelve temperature-free models. Ten were newly trained and two U-Net seed-0 runs were reused from the data-quantity study after verifying their provenance.
+Table~\ref{tab:free} and Figure~\ref{fig:free} summarize the twelve temperature-free models. Ten were newly trained and two U-Net seed-0 runs were reused from the data-quantity study without additional training.
 
 \begin{table}[!htb]
 \centering
@@ -398,7 +398,7 @@ The plan foresaw a simple spatial interpolation of the residuals (kernel or RBF 
   \item \emph{Temperature use.} Small gains from temperature input do not prove that the information is absent or unusable.
 \end{itemize}
 
-\textbf{Cost.} Table~\ref{tab:costs} lists measured compute and queue times. In the temperature-free campaign, training took $3.7$--$4.2$\,h per U-Net run and $5.5$--$7.8$\,h per GLU run. The temperature-input campaign was faster: $0.6$--$0.8$\,h for the U-Net and $2.4$--$3.4$\,h for the GLU. The two campaigns differ in implementation and in compute partition, so these numbers do not define a fixed cost ratio between the families.
+\textbf{Cost.} Table~\ref{tab:costs} lists the GPU training time per model. In the temperature-free campaign, training took $3.7$--$4.2$\,h per U-Net run and $5.5$--$7.8$\,h per GLU run. The temperature-input campaign was faster: $0.6$--$0.8$\,h for the U-Net and $2.4$--$3.4$\,h for the GLU. The two campaigns differ in implementation and in compute partition, so these numbers do not define a fixed cost ratio between the families.
 
 %======================================================================
 \section{Proposed next steps and connection to realistic applications}
@@ -463,26 +463,26 @@ I welcome feedback on the physical relevance of these proposed studies and on su
 %======================================================================
 \clearpage
 \appendix
-\section{Run matrix and checkpoint criteria}
+\section{Training repetitions and checkpoint selection}
 \label{app:runs}
 
 \begin{table}[H]
 \centering
-\caption{The 24 trainings of Experiments~1 and~3 (149-frame pool, 5\% velocity). All stopped by the plateau criterion. ``Best'' is the first VAL minimum (Experiment~1: VAL error at 5\%; Experiment~3: VAL error averaged over the six $K$). ``Last'' is the epoch at early stop. Compute is GPU time in hours from the scheduler accounting. $^\dagger$Reused from the data-quantity study after verifying files and hashes. $^\ddagger$Continued from epoch 1000 with unchanged rules until the plateau criterion was met. The best epoch did not change.}
+\caption{The 24 training runs of Experiments~1 and~3 (149 snapshots per training condition, 5\% observed velocity). Each family and operating-parameter setting has three independent training seeds. Best is the epoch of the first VAL minimum: at 5\% velocity for Experiment~1, and averaged over the six $K$ values for Experiment~3. Stop is the epoch at early stopping. GPU time is in hours. The two temperature-free U-Net seed-0 models were also used in the training-data study; they are counted once.}
 \label{tab:runs}
 \footnotesize
-\begin{tabular}{lllcrrrrrrr}
+\begin{tabular}{llcrrrrrr}
 \toprule
- & & & \multicolumn{4}{c}{\textbf{Exp.~1: temperature-free}} & \multicolumn{4}{c}{\textbf{Exp.~3: temperature input}} \\
-\cmidrule(lr){4-7}\cmidrule(lr){8-11}
-Model & $\mathbf{p}$ & seed & run & best & last & h & best & last & attempts & h \\
+ & & & \multicolumn{3}{c}{\textbf{Exp.~1: temperature-free}} & \multicolumn{3}{c}{\textbf{Exp.~3: temperature input}} \\
+\cmidrule(lr){4-6}\cmidrule(lr){7-9}
+Model & $\mathbf{p}$ & seed & best & stop & GPU h & best & stop & GPU h \\
 \midrule
 \tabinput{tables/month2/run_matrix.tex}
 \bottomrule
 \end{tabular}
 \end{table}
 
-Training repeated attempts only after scheduler preemption or time limits. Each resumed from the complete saved state of the same run, never from scratch. In Experiment~3, three GLU runs had reached the initial limit of 1000 epochs without meeting the plateau criterion. They were continued with unchanged rules and stopped at epochs 1030, 1080 and 1060. Their best checkpoints did not change. Only the last-checkpoint values moved, by $0.04$--$0.46\K$. Values in this report use the final state.
+All models reached the same early-stopping criterion. For three temperature-input GLU models, training continued beyond the initial 1000-epoch budget until that criterion was met. Their best checkpoints did not change; the final results are used throughout this report.
 
 %----------------------------------------------------------------------
 \section{Protocol, metrics and domains}
@@ -613,42 +613,34 @@ Method & $K{=}0$ & 1 & 4 & 9 & 16 & 32 & oracle \\
 \end{table}
 
 %----------------------------------------------------------------------
-\section{Costs and provenance}
+\section{Training cost}
 \label{app:costs}
 
 \begin{table}[H]
 \centering
-\caption{Training cost per run (hours, range over runs) from the scheduler accounting. Compute is the time the job ran on a GPU. Queue is the waiting time, and for the temperature-free GLU array it includes a cap of four concurrent tasks. Attempts above one are resumptions after preemption or time limits. Temperature-input GLU runs used a preemptable partition. Final evaluation took 53--82\,min per run in Experiment~1 (81 evaluation settings per run).}
+\caption{GPU training time per model in hours, with the range over the six models of each family (two operating-parameter settings and three seeds). Time waiting for computing resources is excluded. The two campaigns used different implementations and evaluation workloads, so the difference between campaigns is not an architectural speedup.}
 \label{tab:costs}
 \small
-\begin{tabular}{llrrrr}
+\begin{tabular}{llrr}
 \toprule
-Campaign & Model & runs & compute (h) & queue (h) & attempts \\
+Experiment & Model & models & GPU training time (h) \\
 \midrule
 \tabinput{tables/month2/costs.tex}
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Provenance.} All results come from versioned tables in the project repository \nolinkurl{EnricoBontempi/official_thesis}. The commits are:
-\begin{itemize}
-  \item temperature-free comparison: \texttt{2879c1b};
-  \item correction sweep: \texttt{be18ad0};
-  \item temperature-input study (final version, including the three continued runs) and joint comparison: \texttt{d20232e};
-  \item data-quantity study: \texttt{4f0e263}.
-\end{itemize}
-The figures and table bodies of this report are regenerated from copies of those tables by \nolinkurl{month2_sources/make_figures.py}, without new evaluation. \nolinkurl{month2_sources/SOURCES.md} maps each figure and table to its source file and commit. \nolinkurl{month2_sources/NUMBERS.md} lists every quoted value with its source. Figure~\ref{fig:fields} is a crop of a published field figure. The level-versus-structure history quoted in Sections~\ref{sec:objective} and~\ref{sec:correction} (38-frame models, nine-site grid) and the dense diagnostic come from the corresponding project reports.
+All models ran on NVIDIA L40S GPUs. These measurements describe the practical cost of the experiments; they are not a controlled benchmark of model inference speed.
 
 %----------------------------------------------------------------------
-\section{Technical notes for reproducibility}
+\section{Evaluation details}
 \label{app:notes}
 
 \begin{itemize}
-  \item \textbf{Verification gates.} Every evaluation was checked against the values logged during training (tolerance $0.05\K$ on macro RMSE). The recorded maximum deviation was $0\K$. The temperature-free reference of the correction sweep reproduces the Experiment~1 per-frame values exactly. The joint comparison verified identical anchor manifest, $K$ values, layouts, frames, velocity-mask hashes (1029 frames) and macro definitions on both sides.
-  \item \textbf{Protocol file erratum.} The common configuration file of the temperature study was frozen with a YAML syntax error at line~72 (unquoted text after a list) and cannot be parsed. The executed code used separate frozen manifests (sites, matrices) and recorded the protocol identity, and the cross-checks of the result tables found no numerical discrepancy attributable to the error. The frozen file is kept unchanged under its recorded hash. It must not be presented as a valid executable configuration. Any reuse requires a separate, corrected revision.
+  \item \textbf{Consistency of the comparisons.} Evaluations were checked against training-time metrics. The correction sweep and temperature-input study used the same frames, velocity observations, temperature sites, units and averaging rules.
   \item \textbf{GLU neighbour ties.} On the regular grid, the top-$k$ neighbour search of the temperature-free GLU has distance ties that may be resolved differently when the batch shape changes. This moves a frame RMSE by at most $0.03$--$0.08\K$. All evaluations used the training batch shape. The temperature-input GLU uses an exact lattice search with a deterministic tie-break, one more reason to compare it only with its own $K{=}0$.
   \item \textbf{Undefined regions.} The peak region ($T\ge2200\K$) is empty in a few fit-reference frames. These are declared and excluded from regional means; global metrics have no missing values. Hot-region IoU was not computed in the correction and temperature-input tables, so improvements of the hot region are reported through its RMSE.
-  \item \textbf{Not available.} High-percentile (e.g.\ 95th) frame errors cannot be reconstructed from the aggregate tables and are not reported. Per-frame CSV files and checkpoints are stored on the cluster with manifests and hashes and are not part of the repositories. The extension records of the three continued runs carry an empty last-epoch field in one manifest. The actual epochs (1030, 1080, 1060) are in the run summaries and in Table~\ref{tab:runs}.
+  \item \textbf{Unreported tail errors.} High-percentile frame errors (for example, the 95th percentile) are not included. The tables describe condition averages and variation across training seeds and observation layouts; they do not characterize the full distribution of frame errors.
 \end{itemize}
 
 \bibliographystyle{unsrt}
